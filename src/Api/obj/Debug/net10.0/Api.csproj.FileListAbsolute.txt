@@ -119,3 +119,7 @@ C:\Users\kiko1\AppData\Local\Temp\carshi-build-76cac2cee4524648912c56a77adae38a\
 C:\Users\kiko1\AppData\Local\Temp\carshi-build-76cac2cee4524648912c56a77adae38a\Api.runtimeconfig.json
 C:\Users\kiko1\AppData\Local\Temp\carshi-build-76cac2cee4524648912c56a77adae38a\Api.dll
 C:\Users\kiko1\AppData\Local\Temp\carshi-build-76cac2cee4524648912c56a77adae38a\Api.pdb
+c:\Users\kiko1\OneDrive\Desktop\work\carshi-tow\src\Api\obj\Debug\net10.0\Api.sourcelink.json
+C:\Users\kiko1\OneDrive\Desktop\work\carshi-tow\src\Api\bin\Debug\net10.0\Microsoft.Extensions.Caching.StackExchangeRedis.dll
+C:\Users\kiko1\OneDrive\Desktop\work\carshi-tow\src\Api\bin\Debug\net10.0\Pipelines.Sockets.Unofficial.dll
+C:\Users\kiko1\OneDrive\Desktop\work\carshi-tow\src\Api\bin\Debug\net10.0\StackExchange.Redis.dll

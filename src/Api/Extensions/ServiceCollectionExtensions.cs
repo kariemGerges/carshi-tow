@@ -29,11 +29,26 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<IDeviceFingerprintGenerator, DeviceFingerprintGenerator>();
         services.AddSingleton<IInputSanitizer, InputSanitizer>();
         services.AddSingleton<ICsrfProtectionService, CsrfProtectionService>();
+        services.AddSingleton<IBruteForceProtectionService, BruteForceProtectionService>();
         return services;
     }
 
     public static IServiceCollection AddInfrastructureServices(this IServiceCollection services, IConfiguration configuration, IHostEnvironment environment)
     {
+        var redisSettings = configuration.GetSection(RedisSecuritySettings.SectionName).Get<RedisSecuritySettings>() ?? new RedisSecuritySettings();
+        if (redisSettings.Enabled)
+        {
+            services.AddStackExchangeRedisCache(options =>
+            {
+                options.Configuration = redisSettings.Configuration;
+                options.InstanceName = redisSettings.InstanceName;
+            });
+        }
+        else
+        {
+            services.AddDistributedMemoryCache();
+        }
+
         services.AddDbContext<AppDbContext>(options => options.UseSqlite(configuration.GetConnectionString("DefaultConnection")));
         services.AddScoped<IUserRepository, UserRepository>();
         services.AddScoped<IRefreshTokenRepository, RefreshTokenRepository>();

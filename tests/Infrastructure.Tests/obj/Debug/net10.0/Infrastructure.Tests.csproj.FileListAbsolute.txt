@@ -94,3 +94,4 @@ C:\Users\kiko1\OneDrive\Desktop\work\carshi-tow\tests\Infrastructure.Tests\obj\D
 C:\Users\kiko1\OneDrive\Desktop\work\carshi-tow\tests\Infrastructure.Tests\obj\Debug\net10.0\Infrastructure.Tests.pdb
 C:\Users\kiko1\OneDrive\Desktop\work\carshi-tow\tests\Infrastructure.Tests\obj\Debug\net10.0\Infrastructure.Tests.genruntimeconfig.cache
 C:\Users\kiko1\OneDrive\Desktop\work\carshi-tow\tests\Infrastructure.Tests\obj\Debug\net10.0\ref\Infrastructure.Tests.dll
+C:\Users\kiko1\OneDrive\Desktop\work\carshi-tow\tests\Infrastructure.Tests\obj\Debug\net10.0\Infrastructure.Tests.sourcelink.json

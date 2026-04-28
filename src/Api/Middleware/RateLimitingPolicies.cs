@@ -7,6 +7,9 @@ namespace CarshiTow.Api.Middleware;
 public static class RateLimitingPolicies
 {
     public const string AuthPolicy = "auth-policy";
+    public const string LoginPolicy = "auth-login-policy";
+    public const string OtpPolicy = "auth-otp-policy";
+    public const string RefreshPolicy = "auth-refresh-policy";
     public const string DefaultPolicy = "default-policy";
 
     public static IServiceCollection AddApiRateLimiting(this IServiceCollection services)
@@ -18,6 +21,42 @@ public static class RateLimitingPolicies
                 o.PermitLimit = 10;
                 o.Window = TimeSpan.FromMinutes(1);
                 o.QueueLimit = 0;
+            });
+
+            options.AddPolicy(LoginPolicy, context =>
+            {
+                var ip = context.Connection.RemoteIpAddress?.ToString() ?? "unknown";
+                var key = $"login:{ip}".ToLowerInvariant();
+                return RateLimitPartition.GetFixedWindowLimiter(key, _ => new FixedWindowRateLimiterOptions
+                {
+                    PermitLimit = 5,
+                    Window = TimeSpan.FromMinutes(5),
+                    QueueLimit = 0
+                });
+            });
+
+            options.AddPolicy(OtpPolicy, context =>
+            {
+                var ip = context.Connection.RemoteIpAddress?.ToString() ?? "unknown";
+                var key = $"otp:{ip}".ToLowerInvariant();
+                return RateLimitPartition.GetFixedWindowLimiter(key, _ => new FixedWindowRateLimiterOptions
+                {
+                    PermitLimit = 8,
+                    Window = TimeSpan.FromMinutes(5),
+                    QueueLimit = 0
+                });
+            });
+
+            options.AddPolicy(RefreshPolicy, context =>
+            {
+                var ip = context.Connection.RemoteIpAddress?.ToString() ?? "unknown";
+                var key = $"refresh:{ip}".ToLowerInvariant();
+                return RateLimitPartition.GetFixedWindowLimiter(key, _ => new FixedWindowRateLimiterOptions
+                {
+                    PermitLimit = 20,
+                    Window = TimeSpan.FromMinutes(5),
+                    QueueLimit = 0
+                });
             });
 
             options.AddFixedWindowLimiter(DefaultPolicy, o =>

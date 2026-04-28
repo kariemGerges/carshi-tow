@@ -14,6 +14,7 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.Configure<JwtSettings>(builder.Configuration.GetSection(JwtSettings.SectionName));
 builder.Services.Configure<TwilioSettings>(builder.Configuration.GetSection(TwilioSettings.SectionName));
 builder.Services.Configure<CookieSettings>(builder.Configuration.GetSection(CookieSettings.SectionName));
+builder.Services.Configure<RedisSecuritySettings>(builder.Configuration.GetSection(RedisSecuritySettings.SectionName));
 
 builder.Services.AddControllers(options =>
 {
@@ -22,6 +23,7 @@ builder.Services.AddControllers(options =>
 });
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
+builder.Services.AddMemoryCache();
 builder.Services.AddFluentValidationAutoValidation();
 builder.Services.AddValidation();
 builder.Services.AddHttpContextAccessor();

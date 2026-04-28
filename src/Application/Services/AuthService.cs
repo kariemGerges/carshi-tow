@@ -14,7 +14,8 @@ public sealed class AuthService(
     IRefreshTokenService refreshTokenService,
     IOtpService otpService,
     IDeviceService deviceService,
-    ICsrfProtectionService csrfProtectionService) : IAuthService
+    ICsrfProtectionService csrfProtectionService,
+    IBruteForceProtectionService bruteForceProtectionService) : IAuthService
 {
     public async Task<AuthResponse> RegisterAsync(RegisterRequest request, CancellationToken cancellationToken)
     {
@@ -42,14 +43,27 @@ public sealed class AuthService(
         return new AuthResponse(accessToken, DateTime.UtcNow.AddMinutes(15), csrf);
     }
 
-    public async Task<LoginResponse> LoginAsync(LoginRequest request, string fingerprint, CancellationToken cancellationToken)
+    public async Task<LoginResponse> LoginAsync(LoginRequest request, string fingerprint, string ipAddress, CancellationToken cancellationToken)
     {
         var email = inputSanitizer.Sanitize(request.Email.Trim().ToLowerInvariant());
-        var user = await userRepository.GetByEmailAsync(email, cancellationToken) ?? throw new UnauthorizedAccessException("Invalid credentials.");
-        if (!passwordHasher.Verify(request.Password, user.Password.Value))
+        await bruteForceProtectionService.EnsureLoginAllowedAsync(email, ipAddress, cancellationToken);
+
+        var user = await userRepository.GetByEmailAsync(email, cancellationToken);
+        if (user is null)
         {
+            await bruteForceProtectionService.RegisterLoginFailureAsync(email, ipAddress, cancellationToken);
+            await Task.Delay(Random.Shared.Next(150, 350), cancellationToken);
             throw new UnauthorizedAccessException("Invalid credentials.");
         }
+
+        if (!passwordHasher.Verify(request.Password, user.Password.Value))
+        {
+            await bruteForceProtectionService.RegisterLoginFailureAsync(email, ipAddress, cancellationToken);
+            await Task.Delay(Random.Shared.Next(150, 350), cancellationToken);
+            throw new UnauthorizedAccessException("Invalid credentials.");
+        }
+
+        await bruteForceProtectionService.ResetLoginFailuresAsync(email, ipAddress, cancellationToken);
 
         var known = await deviceService.IsKnownTrustedDeviceAsync(user.Id, fingerprint, cancellationToken);
         if (!known || user.IsMfaEnabled)
@@ -88,6 +102,8 @@ public sealed class AuthService(
 
     public async Task<AuthResponse> VerifyOtpAsync(Guid userId, VerifyOtpRequest request, string fingerprint, string userAgent, string ipAddress, CancellationToken cancellationToken)
     {
+        await bruteForceProtectionService.EnsureOtpAllowedAsync(userId, ipAddress, cancellationToken);
+
         if (!Enum.TryParse<OtpPurpose>(request.Purpose, true, out var purpose))
         {
             throw new InvalidOperationException("Invalid OTP purpose.");
@@ -96,9 +112,11 @@ public sealed class AuthService(
         var verified = await otpService.VerifyAsync(userId, request.Code, purpose, cancellationToken);
         if (!verified)
         {
+            await bruteForceProtectionService.RegisterOtpFailureAsync(userId, ipAddress, cancellationToken);
             throw new UnauthorizedAccessException("Invalid OTP.");
         }
 
+        await bruteForceProtectionService.ResetOtpFailuresAsync(userId, ipAddress, cancellationToken);
         await deviceService.UpsertDeviceAsync(userId, fingerprint, userAgent, ipAddress, trust: true, cancellationToken);
         var user = await userRepository.GetByIdAsync(userId, cancellationToken) ??
                    throw new UnauthorizedAccessException("User not found.");

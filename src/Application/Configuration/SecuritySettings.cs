@@ -25,3 +25,11 @@ public sealed class CookieSettings
     public int RefreshTokenDays { get; set; } = 7;
     public bool Secure { get; set; } = true;
 }
+
+public sealed class RedisSecuritySettings
+{
+    public const string SectionName = "Redis";
+    public bool Enabled { get; set; }
+    public string Configuration { get; set; } = "localhost:6379";
+    public string InstanceName { get; set; } = "carshitow-security";
+}
