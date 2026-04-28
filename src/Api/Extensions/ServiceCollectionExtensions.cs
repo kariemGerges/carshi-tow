@@ -1,0 +1,82 @@
+using System.Text;
+using CarshiTow.Api.Filters;
+using CarshiTow.Application.Configuration;
+using CarshiTow.Application.Interfaces;
+using CarshiTow.Application.Security;
+using CarshiTow.Application.Services;
+using CarshiTow.Application.Validators;
+using CarshiTow.Infrastructure.External;
+using CarshiTow.Infrastructure.Persistence;
+using CarshiTow.Infrastructure.Repositories;
+using CarshiTow.Infrastructure.Security;
+using FluentValidation;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.IdentityModel.Tokens;
+
+namespace CarshiTow.Api.Extensions;
+
+public static class ServiceCollectionExtensions
+{
+    public static IServiceCollection AddApplicationServices(this IServiceCollection services)
+    {
+        services.AddScoped<IAuthService, AuthService>();
+        services.AddScoped<ITokenService, TokenService>();
+        services.AddScoped<IRefreshTokenService, RefreshTokenService>();
+        services.AddScoped<IOtpService, OtpService>();
+        services.AddScoped<IDeviceService, DeviceService>();
+        services.AddSingleton<IPasswordHasher, PasswordHasher>();
+        services.AddSingleton<IDeviceFingerprintGenerator, DeviceFingerprintGenerator>();
+        services.AddSingleton<IInputSanitizer, InputSanitizer>();
+        services.AddSingleton<ICsrfProtectionService, CsrfProtectionService>();
+        return services;
+    }
+
+    public static IServiceCollection AddInfrastructureServices(this IServiceCollection services, IConfiguration configuration, IHostEnvironment environment)
+    {
+        services.AddDbContext<AppDbContext>(options => options.UseSqlite(configuration.GetConnectionString("DefaultConnection")));
+        services.AddScoped<IUserRepository, UserRepository>();
+        services.AddScoped<IRefreshTokenRepository, RefreshTokenRepository>();
+        services.AddScoped<IDeviceRepository, DeviceRepository>();
+        services.AddScoped<IOtpCodeRepository, OtpCodeRepository>();
+        if (environment.IsDevelopment())
+        {
+            services.AddScoped<ISmsSender, DevelopmentSmsSender>();
+        }
+        else
+        {
+            services.AddScoped<ISmsSender, TwilioSmsSender>();
+        }
+        services.AddSingleton<IJwtTokenGenerator, JwtTokenGenerator>();
+        services.AddSingleton<ICookieManager, CookieManager>();
+        return services;
+    }
+
+    public static IServiceCollection AddValidation(this IServiceCollection services)
+    {
+        services.AddValidatorsFromAssemblyContaining<RegisterRequestValidator>();
+        services.AddScoped<ValidationFilter>();
+        services.AddScoped<DeviceFingerprintFilter>();
+        return services;
+    }
+
+    public static IServiceCollection AddJwtAuthentication(this IServiceCollection services, IConfiguration configuration)
+    {
+        var settings = configuration.GetSection(JwtSettings.SectionName).Get<JwtSettings>() ?? new JwtSettings();
+        services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+            .AddJwtBearer(options =>
+            {
+                options.TokenValidationParameters = new TokenValidationParameters
+                {
+                    ValidateIssuer = true,
+                    ValidateAudience = true,
+                    ValidateIssuerSigningKey = true,
+                    ValidateLifetime = true,
+                    ValidIssuer = settings.Issuer,
+                    ValidAudience = settings.Audience,
+                    IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(settings.Key))
+                };
+            });
+        return services;
+    }
+}

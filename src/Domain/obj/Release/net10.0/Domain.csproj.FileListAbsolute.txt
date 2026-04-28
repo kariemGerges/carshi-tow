@@ -1,0 +1,11 @@
+C:\Users\kiko1\OneDrive\Desktop\work\carshi-tow\src\Domain\bin\Release\net10.0\Domain.deps.json
+c:\Users\kiko1\OneDrive\Desktop\work\carshi-tow\src\Domain\bin\Release\net10.0\Domain.dll
+c:\Users\kiko1\OneDrive\Desktop\work\carshi-tow\src\Domain\bin\Release\net10.0\Domain.pdb
+c:\Users\kiko1\OneDrive\Desktop\work\carshi-tow\src\Domain\obj\Release\net10.0\Domain.GeneratedMSBuildEditorConfig.editorconfig
+c:\Users\kiko1\OneDrive\Desktop\work\carshi-tow\src\Domain\obj\Release\net10.0\Domain.AssemblyInfoInputs.cache
+c:\Users\kiko1\OneDrive\Desktop\work\carshi-tow\src\Domain\obj\Release\net10.0\Domain.AssemblyInfo.cs
+c:\Users\kiko1\OneDrive\Desktop\work\carshi-tow\src\Domain\obj\Release\net10.0\Domain.csproj.CoreCompileInputs.cache
+c:\Users\kiko1\OneDrive\Desktop\work\carshi-tow\src\Domain\obj\Release\net10.0\Domain.dll
+c:\Users\kiko1\OneDrive\Desktop\work\carshi-tow\src\Domain\obj\Release\net10.0\refint\Domain.dll
+c:\Users\kiko1\OneDrive\Desktop\work\carshi-tow\src\Domain\obj\Release\net10.0\Domain.pdb
+C:\Users\kiko1\OneDrive\Desktop\work\carshi-tow\src\Domain\obj\Release\net10.0\ref\Domain.dll

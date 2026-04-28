@@ -1,0 +1,52 @@
+### Base URL — must match `dotnet run` / launchSettings "Now listening on:" (example below).
+### Use Development so SQLite is created locally and cookies work over HTTP (appsettings.Development.json).
+@baseUrl = http://127.0.0.1:5000
+
+### Swagger UI (Development only)
+# @name swagger
+GET {{baseUrl}}/swagger/index.html
+
+### Register — use a fresh email each run (duplicate email → 409)
+POST {{baseUrl}}/api/auth/register
+Content-Type: application/json
+X-Client-Id: postman-test-client
+
+{
+  "email": "driver-{{$guid}}@example.com",
+  "password": "TestPass123!",
+  "phoneNumber": "+15551234567"
+}
+
+### Login — same password as register above; change email to match
+POST {{baseUrl}}/api/auth/login
+Content-Type: application/json
+X-Client-Id: postman-test-client
+
+{
+  "email": "driver-REPLACE_WITH_EMAIL@example.com",
+  "password": "TestPass123!",
+  "clientId": "postman-test-client"
+}
+
+### Refresh — send cookies from register/login (Postman: enable cookie jar for this host).
+### Body.csrfToken must match the csrfToken field from the last auth JSON response.
+POST {{baseUrl}}/api/auth/refresh
+Content-Type: application/json
+
+{
+  "csrfToken": "PASTE_CSRF_FROM_JSON_RESPONSE"
+}
+
+### Verify OTP — requires Authorization: Bearer <access_token> from partial login/MFA flow
+POST {{baseUrl}}/api/auth/otp/verify
+Authorization: Bearer PASTE_ACCESS_TOKEN
+Content-Type: application/json
+X-Client-Id: postman-test-client
+
+{
+  "code": "123456",
+  "purpose": "NewDeviceVerification"
+}
+
+### Logout — revokes current refresh token and clears auth cookies
+POST {{baseUrl}}/api/auth/logout

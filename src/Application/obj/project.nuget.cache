@@ -1,0 +1,27 @@
+{
+  "version": 2,
+  "dgSpecHash": "3RHbQ9VAOA4=",
+  "success": true,
+  "projectFilePath": "c:\\Users\\kiko1\\OneDrive\\Desktop\\work\\carshi-tow\\src\\Application\\Application.csproj",
+  "expectedPackageFiles": [
+    "C:\\Users\\kiko1\\.nuget\\packages\\anglesharp\\0.17.1\\anglesharp.0.17.1.nupkg.sha512",
+    "C:\\Users\\kiko1\\.nuget\\packages\\anglesharp.css\\0.17.0\\anglesharp.css.0.17.0.nupkg.sha512",
+    "C:\\Users\\kiko1\\.nuget\\packages\\bcrypt.net-next\\4.0.3\\bcrypt.net-next.4.0.3.nupkg.sha512",
+    "C:\\Users\\kiko1\\.nuget\\packages\\fluentvalidation\\11.11.0\\fluentvalidation.11.11.0.nupkg.sha512",
+    "C:\\Users\\kiko1\\.nuget\\packages\\htmlsanitizer\\8.1.870\\htmlsanitizer.8.1.870.nupkg.sha512"
+  ],
+  "logs": [
+    {
+      "code": "NU1902",
+      "level": "Warning",
+      "message": "Package 'HtmlSanitizer' 8.1.870 has a known moderate severity vulnerability, https://github.com/advisories/GHSA-j92c-7v7g-gj3f",
+      "projectPath": "c:\\Users\\kiko1\\OneDrive\\Desktop\\work\\carshi-tow\\src\\Application\\Application.csproj",
+      "warningLevel": 1,
+      "filePath": "c:\\Users\\kiko1\\OneDrive\\Desktop\\work\\carshi-tow\\src\\Application\\Application.csproj",
+      "libraryId": "HtmlSanitizer",
+      "targetGraphs": [
+        "net10.0"
+      ]
+    }
+  ]
+}
