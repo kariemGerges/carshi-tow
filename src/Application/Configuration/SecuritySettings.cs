@@ -33,3 +33,10 @@ public sealed class RedisSecuritySettings
     public string Configuration { get; set; } = "localhost:6379";
     public string InstanceName { get; set; } = "carshitow-security";
 }
+
+public sealed class PasswordResetSettings
+{
+    public const string SectionName = "PasswordReset";
+    public int TokenExpirationMinutes { get; set; } = 60;
+    public string ResetLinkBaseUrl { get; set; } = "http://localhost:3000/reset-password";
+}

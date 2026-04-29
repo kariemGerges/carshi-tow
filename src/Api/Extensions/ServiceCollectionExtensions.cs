@@ -1,8 +1,10 @@
+using System.Security.Claims;
 using System.Text;
 using CarshiTow.Api.Filters;
 using CarshiTow.Application.Configuration;
 using CarshiTow.Application.Interfaces;
 using CarshiTow.Application.Security;
+using CarshiTow.Api.Authorization;
 using CarshiTow.Application.Services;
 using CarshiTow.Application.Validators;
 using CarshiTow.Infrastructure.External;
@@ -10,7 +12,9 @@ using CarshiTow.Infrastructure.Persistence;
 using CarshiTow.Infrastructure.Repositories;
 using CarshiTow.Infrastructure.Security;
 using FluentValidation;
+using System.IdentityModel.Tokens.Jwt;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 
@@ -21,6 +25,8 @@ public static class ServiceCollectionExtensions
     public static IServiceCollection AddApplicationServices(this IServiceCollection services)
     {
         services.AddScoped<IAuthService, AuthService>();
+        services.AddScoped<IPlatformAdminService, PlatformAdminService>();
+        services.AddScoped<IAuthorizationHandler, MandatoryMfaEnrollmentHandler>();
         services.AddScoped<ITokenService, TokenService>();
         services.AddScoped<IRefreshTokenService, RefreshTokenService>();
         services.AddScoped<IOtpService, OtpService>();
@@ -49,9 +55,12 @@ public static class ServiceCollectionExtensions
             services.AddDistributedMemoryCache();
         }
 
-        services.AddDbContext<AppDbContext>(options => options.UseSqlite(configuration.GetConnectionString("DefaultConnection")));
+        services.AddDbContext<AppDbContext>(options =>
+            options.UseNpgsql(configuration.GetConnectionString("DefaultConnection")));
         services.AddScoped<IUserRepository, UserRepository>();
         services.AddScoped<IRefreshTokenRepository, RefreshTokenRepository>();
+        services.AddScoped<IPasswordResetTokenRepository, PasswordResetTokenRepository>();
+        services.AddSingleton<IEmailSender, DevelopmentEmailSender>();
         services.AddScoped<IDeviceRepository, DeviceRepository>();
         services.AddScoped<IOtpCodeRepository, OtpCodeRepository>();
         if (environment.IsDevelopment())
@@ -89,7 +98,9 @@ public static class ServiceCollectionExtensions
                     ValidateLifetime = true,
                     ValidIssuer = settings.Issuer,
                     ValidAudience = settings.Audience,
-                    IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(settings.Key))
+                    IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(settings.Key)),
+                    NameClaimType = JwtRegisteredClaimNames.Sub,
+                    RoleClaimType = ClaimTypes.Role
                 };
             });
         return services;

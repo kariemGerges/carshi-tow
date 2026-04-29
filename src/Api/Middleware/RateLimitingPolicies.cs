@@ -10,6 +10,7 @@ public static class RateLimitingPolicies
     public const string LoginPolicy = "auth-login-policy";
     public const string OtpPolicy = "auth-otp-policy";
     public const string RefreshPolicy = "auth-refresh-policy";
+    public const string PasswordResetRequestPolicy = "auth-password-reset-request-policy";
     public const string DefaultPolicy = "default-policy";
 
     public static IServiceCollection AddApiRateLimiting(this IServiceCollection services)
@@ -55,6 +56,18 @@ public static class RateLimitingPolicies
                 {
                     PermitLimit = 20,
                     Window = TimeSpan.FromMinutes(5),
+                    QueueLimit = 0
+                });
+            });
+
+            options.AddPolicy(PasswordResetRequestPolicy, context =>
+            {
+                var ip = context.Connection.RemoteIpAddress?.ToString() ?? "unknown";
+                var key = $"pwd-reset-req:{ip}".ToLowerInvariant();
+                return RateLimitPartition.GetFixedWindowLimiter(key, _ => new FixedWindowRateLimiterOptions
+                {
+                    PermitLimit = 5,
+                    Window = TimeSpan.FromMinutes(15),
                     QueueLimit = 0
                 });
             });

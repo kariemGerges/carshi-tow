@@ -19,6 +19,11 @@ public sealed class RefreshTokenRepository(AppDbContext dbContext) : IRefreshTok
         return Task.CompletedTask;
     }
 
+    public Task RevokeAllActiveForUserAsync(Guid userId, CancellationToken cancellationToken) =>
+        dbContext.RefreshTokens
+            .Where(t => t.UserId == userId && t.RevokedAtUtc == null)
+            .ExecuteUpdateAsync(s => s.SetProperty(t => t.RevokedAtUtc, _ => DateTime.UtcNow), cancellationToken);
+
     public Task SaveChangesAsync(CancellationToken cancellationToken) =>
         dbContext.SaveChangesAsync(cancellationToken);
 }

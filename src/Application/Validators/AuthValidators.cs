@@ -38,3 +38,20 @@ public sealed class VerifyOtpRequestValidator : AbstractValidator<VerifyOtpReque
         RuleFor(x => x.Purpose).NotEmpty().Must(v => Enum.TryParse(v, true, out Domain.Enums.OtpPurpose _));
     }
 }
+
+public sealed class RequestPasswordResetRequestValidator : AbstractValidator<RequestPasswordResetRequest>
+{
+    public RequestPasswordResetRequestValidator()
+    {
+        RuleFor(x => x.Email).NotEmpty().EmailAddress().MaximumLength(256);
+    }
+}
+
+public sealed class CompletePasswordResetRequestValidator : AbstractValidator<CompletePasswordResetRequest>
+{
+    public CompletePasswordResetRequestValidator()
+    {
+        RuleFor(x => x.Token).NotEmpty().MaximumLength(512);
+        RuleFor(x => x.NewPassword).NotEmpty().MinimumLength(10).MaximumLength(128);
+    }
+}

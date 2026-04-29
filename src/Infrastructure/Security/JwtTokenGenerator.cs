@@ -3,6 +3,8 @@ using System.Security.Claims;
 using System.Text;
 using CarshiTow.Application.Configuration;
 using CarshiTow.Application.Interfaces;
+using CarshiTow.Domain.Authorization;
+using CarshiTow.Domain.Enums;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 
@@ -12,14 +14,20 @@ public sealed class JwtTokenGenerator(IOptions<JwtSettings> jwtOptions) : IJwtTo
 {
     private readonly JwtSettings _settings = jwtOptions.Value;
 
-    public string Generate(Guid userId, string email)
+    public string Generate(Guid userId, string email, UserRole role)
     {
         var claims = new List<Claim>
         {
             new(JwtRegisteredClaimNames.Sub, userId.ToString()),
             new(JwtRegisteredClaimNames.Email, email),
-            new(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString())
+            new(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
+            new(ClaimTypes.Role, role.ToString())
         };
+
+        foreach (var p in RolePermissions.ForRole(role))
+        {
+            claims.Add(new Claim(PermissionClaimTypes.Permission, p));
+        }
 
         var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_settings.Key));
         var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);

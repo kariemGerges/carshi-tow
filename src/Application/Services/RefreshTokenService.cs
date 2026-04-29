@@ -45,6 +45,9 @@ public sealed class RefreshTokenService(IRefreshTokenRepository refreshTokenRepo
         await refreshTokenRepository.SaveChangesAsync(cancellationToken);
     }
 
+    public Task RevokeAllActiveForUserAsync(Guid userId, CancellationToken cancellationToken) =>
+        refreshTokenRepository.RevokeAllActiveForUserAsync(userId, cancellationToken);
+
     private static string Hash(string value)
     {
         var bytes = SHA256.HashData(Encoding.UTF8.GetBytes(value));

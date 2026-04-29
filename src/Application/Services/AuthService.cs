@@ -1,8 +1,14 @@
+using System.Security.Cryptography;
+using System.Text;
+using CarshiTow.Application.Configuration;
 using CarshiTow.Application.DTOs;
 using CarshiTow.Application.Interfaces;
+using CarshiTow.Application.Security;
+using CarshiTow.Domain.Authorization;
 using CarshiTow.Domain.Entities;
 using CarshiTow.Domain.Enums;
 using CarshiTow.Domain.ValueObjects;
+using Microsoft.Extensions.Options;
 
 namespace CarshiTow.Application.Services;
 
@@ -15,7 +21,10 @@ public sealed class AuthService(
     IOtpService otpService,
     IDeviceService deviceService,
     ICsrfProtectionService csrfProtectionService,
-    IBruteForceProtectionService bruteForceProtectionService) : IAuthService
+    IBruteForceProtectionService bruteForceProtectionService,
+    IPasswordResetTokenRepository passwordResetTokenRepository,
+    IEmailSender emailSender,
+    IOptions<PasswordResetSettings> passwordResetSettings) : IAuthService
 {
     public async Task<AuthResponse> RegisterAsync(RegisterRequest request, CancellationToken cancellationToken)
     {
@@ -38,7 +47,7 @@ public sealed class AuthService(
         await userRepository.AddAsync(user, cancellationToken);
         await userRepository.SaveChangesAsync(cancellationToken);
 
-        var accessToken = await tokenService.GenerateAccessTokenAsync(user.Id, user.Email, cancellationToken);
+        var accessToken = await tokenService.GenerateAccessTokenAsync(user.Id, user.Email, user.Role, cancellationToken);
         var csrf = csrfProtectionService.GenerateToken();
         return new AuthResponse(accessToken, DateTime.UtcNow.AddMinutes(15), csrf);
     }
@@ -66,14 +75,14 @@ public sealed class AuthService(
         await bruteForceProtectionService.ResetLoginFailuresAsync(email, ipAddress, cancellationToken);
 
         var known = await deviceService.IsKnownTrustedDeviceAsync(user.Id, fingerprint, cancellationToken);
-        if (!known || user.IsMfaEnabled)
+        if (MfaLoginRules.ShouldChallengeSmsOtp(user, known))
         {
             await otpService.IssueAsync(user.Id, user.PhoneNumber, OtpPurpose.NewDeviceVerification, cancellationToken);
-            var mfaToken = await tokenService.GenerateAccessTokenAsync(user.Id, user.Email, cancellationToken);
+            var mfaToken = await tokenService.GenerateAccessTokenAsync(user.Id, user.Email, user.Role, cancellationToken);
             return new LoginResponse(true, mfaToken, DateTime.UtcNow.AddMinutes(15), null);
         }
 
-        var accessToken = await tokenService.GenerateAccessTokenAsync(user.Id, user.Email, cancellationToken);
+        var accessToken = await tokenService.GenerateAccessTokenAsync(user.Id, user.Email, user.Role, cancellationToken);
         return new LoginResponse(false, accessToken, DateTime.UtcNow.AddMinutes(15), csrfProtectionService.GenerateToken());
     }
 
@@ -95,7 +104,7 @@ public sealed class AuthService(
         var user = await userRepository.GetByIdAsync(rotated.Token.UserId, cancellationToken) ??
                    throw new UnauthorizedAccessException("User not found.");
 
-        var accessToken = await tokenService.GenerateAccessTokenAsync(user.Id, user.Email, cancellationToken);
+        var accessToken = await tokenService.GenerateAccessTokenAsync(user.Id, user.Email, user.Role, cancellationToken);
         var auth = new AuthResponse(accessToken, DateTime.UtcNow.AddMinutes(15), csrfProtectionService.GenerateToken());
         return new RefreshAuthResult(auth, rotated.RawToken);
     }
@@ -121,7 +130,98 @@ public sealed class AuthService(
         var user = await userRepository.GetByIdAsync(userId, cancellationToken) ??
                    throw new UnauthorizedAccessException("User not found.");
 
-        var accessToken = await tokenService.GenerateAccessTokenAsync(user.Id, user.Email, cancellationToken);
+        var accessToken = await tokenService.GenerateAccessTokenAsync(user.Id, user.Email, user.Role, cancellationToken);
         return new AuthResponse(accessToken, DateTime.UtcNow.AddMinutes(15), csrfProtectionService.GenerateToken());
+    }
+
+    public async Task RequestPasswordResetAsync(RequestPasswordResetRequest request, CancellationToken cancellationToken)
+    {
+        var email = inputSanitizer.Sanitize(request.Email.Trim().ToLowerInvariant());
+        var user = await userRepository.GetByEmailAsync(email, cancellationToken);
+        if (user is null)
+        {
+            await Task.Delay(Random.Shared.Next(50, 200), cancellationToken);
+            return;
+        }
+
+        await passwordResetTokenRepository.InvalidateActiveForUserAsync(user.Id, cancellationToken);
+
+        var rawToken = Convert.ToBase64String(RandomNumberGenerator.GetBytes(48));
+        var tokenEntity = new PasswordResetToken
+        {
+            Id = Guid.NewGuid(),
+            UserId = user.Id,
+            TokenHash = HashResetToken(rawToken),
+            ExpiresAtUtc =
+                DateTime.UtcNow.AddMinutes(Math.Clamp(passwordResetSettings.Value.TokenExpirationMinutes, 5, 24 * 60))
+        };
+
+        await passwordResetTokenRepository.AddAsync(tokenEntity, cancellationToken);
+        await passwordResetTokenRepository.SaveChangesAsync(cancellationToken);
+
+        var baseUrl = passwordResetSettings.Value.ResetLinkBaseUrl.TrimEnd('/');
+        var separator = baseUrl.Contains('?', StringComparison.Ordinal) ? '&' : '?';
+        var link =
+            $"{baseUrl}{separator}token={Uri.EscapeDataString(rawToken)}";
+
+        await emailSender.SendAsync(
+            user.Email,
+            "Reset your CarshiTow password",
+            $"Use this link to set a new password (expires soon):\n\n{link}",
+            cancellationToken);
+    }
+
+    public async Task CompletePasswordResetAsync(CompletePasswordResetRequest request, CancellationToken cancellationToken)
+    {
+        var trimmed = request.Token.Trim();
+        if (string.IsNullOrEmpty(trimmed))
+        {
+            throw new UnauthorizedAccessException("Invalid or expired reset token.");
+        }
+
+        var hash = HashResetToken(trimmed);
+        var record = await passwordResetTokenRepository.GetActiveByHashAsync(hash, cancellationToken);
+        if (record is null)
+        {
+            throw new UnauthorizedAccessException("Invalid or expired reset token.");
+        }
+
+        var user = await userRepository.GetByIdAsync(record.UserId, cancellationToken) ??
+                   throw new UnauthorizedAccessException("Invalid or expired reset token.");
+
+        user.Password = new HashedPassword(passwordHasher.Hash(request.NewPassword));
+        user.UpdatedAtUtc = DateTime.UtcNow;
+
+        record.UsedAtUtc = DateTime.UtcNow;
+
+        await refreshTokenService.RevokeAllActiveForUserAsync(user.Id, cancellationToken);
+        await userRepository.UpdateAsync(user, cancellationToken);
+        await passwordResetTokenRepository.UpdateAsync(record, cancellationToken);
+        await userRepository.SaveChangesAsync(cancellationToken);
+    }
+
+    public async Task<UserProfile> GetProfileAsync(Guid userId, CancellationToken cancellationToken)
+    {
+        var user = await userRepository.GetByIdAsync(userId, cancellationToken) ??
+                   throw new KeyNotFoundException("User not found.");
+
+        var permissions = RolePermissions.ForRole(user.Role).Order(StringComparer.Ordinal).ToArray();
+        return new UserProfile(
+            user.Id,
+            user.Email,
+            user.PhoneNumber,
+            user.Role.ToString(),
+            user.Status.ToString(),
+            user.IsMfaEnabled,
+            permissions,
+            user.CreatedAtUtc,
+            user.UpdatedAtUtc,
+            user.LastLoginAtUtc);
+    }
+
+    private static string HashResetToken(string value)
+    {
+        var bytes = SHA256.HashData(Encoding.UTF8.GetBytes(value));
+        return Convert.ToHexString(bytes);
     }
 }

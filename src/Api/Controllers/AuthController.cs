@@ -39,6 +39,45 @@ public sealed class AuthController(
     [ProducesResponseType(StatusCodes.Status500InternalServerError)]
     public IActionResult Health() => Ok("CarshiTow Auth API is running");
 
+    [HttpPost("password/reset-request")]
+    [AllowAnonymous]
+    [EnableRateLimiting(CarshiTow.Api.Middleware.RateLimitingPolicies.PasswordResetRequestPolicy)]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    public async Task<IActionResult> RequestPasswordReset([FromBody] PasswordResetRequestDto request, CancellationToken cancellationToken)
+    {
+        await authService.RequestPasswordResetAsync(request.ToApp(), cancellationToken);
+        return NoContent();
+    }
+
+    [HttpPost("password/reset")]
+    [AllowAnonymous]
+    [EnableRateLimiting(CarshiTow.Api.Middleware.RateLimitingPolicies.AuthPolicy)]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    public async Task<IActionResult> CompletePasswordReset([FromBody] PasswordResetCompleteDto request, CancellationToken cancellationToken)
+    {
+        await authService.CompletePasswordResetAsync(request.ToApp(), cancellationToken);
+        return NoContent();
+    }
+
+    [HttpGet("me")]
+    [Authorize]
+    [EnableRateLimiting(CarshiTow.Api.Middleware.RateLimitingPolicies.AuthPolicy)]
+    [ProducesResponseType(typeof(UserProfileDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<UserProfileDto>> GetCurrentProfile(CancellationToken cancellationToken)
+    {
+        var userIdClaim = User.FindFirst("sub")?.Value;
+        if (!Guid.TryParse(userIdClaim, out var userId))
+        {
+            return Unauthorized();
+        }
+
+        var profile = await authService.GetProfileAsync(userId, cancellationToken);
+        return Ok(profile.ToApi());
+    }
+
     // Register endpoint is used to register a new user.
     [HttpPost("register")]
     [AllowAnonymous]

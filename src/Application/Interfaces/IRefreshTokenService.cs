@@ -8,4 +8,5 @@ public interface IRefreshTokenService
     Task<RefreshToken?> ValidateAsync(string rawToken, CancellationToken cancellationToken);
     Task<(RefreshToken Token, string RawToken)> RotateAsync(RefreshToken current, CancellationToken cancellationToken);
     Task RevokeAsync(RefreshToken token, CancellationToken cancellationToken);
+    Task RevokeAllActiveForUserAsync(Guid userId, CancellationToken cancellationToken);
 }

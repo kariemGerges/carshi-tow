@@ -50,3 +50,34 @@ X-Client-Id: postman-test-client
 
 ### Logout — revokes current refresh token and clears auth cookies
 POST {{baseUrl}}/api/auth/logout
+
+### Request password reset — check dev logs for link (204; same response if email unknown)
+POST {{baseUrl}}/api/auth/password/reset-request
+Content-Type: application/json
+
+{
+  "email": "driver-REPLACE_WITH_EMAIL@example.com"
+}
+
+### Complete password reset — token from email link query string
+POST {{baseUrl}}/api/auth/password/reset
+Content-Type: application/json
+
+{
+  "token": "PASTE_TOKEN_FROM_EMAIL",
+  "newPassword": "NewTestPass123!"
+}
+
+### Current user profile — Bearer from login/register/refresh
+GET {{baseUrl}}/api/auth/me
+Authorization: Bearer PASTE_ACCESS_TOKEN
+
+### Assign user role (Crashify Admin; requires platform.users.manage + MFA enabled on caller)
+### Body.role: TowYardAdmin | TowYardStaff | Insurer | CrashifyAdmin | CrashifySupport
+PATCH {{baseUrl}}/api/admin/users/PASTE_USER_ID/role
+Authorization: Bearer PASTE_CRASHIFY_ADMIN_ACCESS_TOKEN
+Content-Type: application/json
+
+{
+  "role": "TowYardStaff"
+}

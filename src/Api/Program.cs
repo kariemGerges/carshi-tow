@@ -1,5 +1,7 @@
 using System.Diagnostics;
 using CarshiTow.Application.Configuration;
+using CarshiTow.Infrastructure.Seeding;
+using CarshiTow.Api.Authorization;
 using CarshiTow.Api.ExceptionHandling;
 using CarshiTow.Api.Extensions;
 using CarshiTow.Api.Filters;
@@ -15,6 +17,8 @@ builder.Services.Configure<JwtSettings>(builder.Configuration.GetSection(JwtSett
 builder.Services.Configure<TwilioSettings>(builder.Configuration.GetSection(TwilioSettings.SectionName));
 builder.Services.Configure<CookieSettings>(builder.Configuration.GetSection(CookieSettings.SectionName));
 builder.Services.Configure<RedisSecuritySettings>(builder.Configuration.GetSection(RedisSecuritySettings.SectionName));
+builder.Services.Configure<PasswordResetSettings>(builder.Configuration.GetSection(PasswordResetSettings.SectionName));
+builder.Services.Configure<CrashifySeedSettings>(builder.Configuration.GetSection(CrashifySeedSettings.SectionName));
 
 builder.Services.AddControllers(options =>
 {
@@ -30,7 +34,7 @@ builder.Services.AddHttpContextAccessor();
 builder.Services.AddApplicationServices();
 builder.Services.AddInfrastructureServices(builder.Configuration, builder.Environment);
 builder.Services.AddJwtAuthentication(builder.Configuration);
-builder.Services.AddAuthorization();
+builder.Services.AddAuthorization(o => CarshiTowAuthorizationPolicies.AddPolicies(o));
 builder.Services.AddApiRateLimiting();
 builder.Services.Configure<ApiBehaviorOptions>(o => o.SuppressModelStateInvalidFilter = true);
 
@@ -56,7 +60,12 @@ if (app.Environment.IsDevelopment())
 {
     using var scope = app.Services.CreateScope();
     var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-    await db.Database.EnsureCreatedAsync();
+    await db.Database.MigrateAsync();
+}
+
+{
+    using var scope = app.Services.CreateScope();
+    await CrashifyAdminSeed.RunAsync(scope.ServiceProvider, CancellationToken.None);
 }
 
 app.UseMiddleware<CorrelationIdMiddleware>();
@@ -76,3 +85,5 @@ if (app.Environment.IsDevelopment())
 
 app.MapControllers();
 app.Run();
+
+public partial class Program;

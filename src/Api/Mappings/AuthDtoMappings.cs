@@ -10,6 +10,13 @@ public static class AuthDtoMappings
     public static RefreshTokenRequest ToApp(this RefreshTokenRequestDto dto) => new(dto.CsrfToken);
     public static VerifyOtpRequest ToApp(this VerifyOtpRequestDto dto) => new(dto.Code, dto.Purpose);
 
+    public static RequestPasswordResetRequest ToApp(this PasswordResetRequestDto dto) => new(dto.Email);
+
+    public static CompletePasswordResetRequest ToApp(this PasswordResetCompleteDto dto) => new(dto.Token, dto.NewPassword);
+
     public static AuthResponseDto ToApi(this AuthResponse r) => new(r.AccessToken, r.AccessTokenExpiresAtUtc, r.CsrfToken);
     public static LoginResponseDto ToApi(this LoginResponse r) => new(r.RequiresMfa, r.AccessToken, r.AccessTokenExpiresAtUtc, r.CsrfToken);
+
+    public static UserProfileDto ToApi(this UserProfile p) =>
+        new(p.Id, p.Email, p.PhoneNumber, p.Role, p.Status, p.IsMfaEnabled, p.Permissions, p.CreatedAtUtc, p.UpdatedAtUtc, p.LastLoginAtUtc);
 }
