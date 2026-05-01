@@ -1,9 +1,25 @@
+using CarshiTow.Domain.Enums;
+
 namespace CarshiTow.Application.DTOs;
 
-public sealed record RegisterRequest(string Email, string Password, string PhoneNumber);
+/// <summary>Tow-yard owner onboarding (SRS §2.2.1). Creates pending user + pending tow yard in one registration.</summary>
+public sealed record RegisterRequest(
+    string Email,
+    string Password,
+    string PhoneNumber,
+    string BusinessName,
+    string Abn,
+    string AddressLine1,
+    string Suburb,
+    AustralianState State,
+    string Postcode,
+    string BusinessPhone,
+    string[]? VerificationDocumentUrls = null);
 public sealed record LoginRequest(string Email, string Password, string? ClientId);
 public sealed record RefreshTokenRequest(string CsrfToken);
 public sealed record VerifyOtpRequest(string Code, string Purpose);
+
+public sealed record MfaVerifyRequest(string MfaAccessToken, string Code, string Purpose);
 
 public sealed record AuthResponse(string AccessToken, DateTime AccessTokenExpiresAtUtc, string CsrfToken);
 public sealed record RefreshAuthResult(AuthResponse Auth, string NewRefreshToken);

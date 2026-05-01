@@ -11,7 +11,7 @@ namespace CarshiTow.Api.Controllers;
 
 /// <summary>Platform user-management APIs (Crashify Admin only).</summary>
 [ApiController]
-[Route("api/admin/users")]
+[Route("api/v1/admin/users")]
 [Authorize(Policy = Permissions.PlatformUsersManage)]
 [Authorize(Policy = CarshiTowAuthorizationPolicies.MandatoryMfaEnrollment)]
 public sealed class AdminUsersController(IPlatformAdminService platformAdmin) : ControllerBase

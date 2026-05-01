@@ -29,6 +29,12 @@ public sealed class UserConfiguration : IEntityTypeConfiguration<User>
         builder.Property(x => x.CreatedAtUtc).HasColumnName("created_at").IsRequired();
         builder.Property(x => x.UpdatedAtUtc).HasColumnName("updated_at").IsRequired();
         builder.Property(x => x.DeletedAtUtc).HasColumnName("deleted_at");
+        builder.Property(x => x.TowYardId).HasColumnName("tow_yard_id");
+        builder.HasIndex(x => x.TowYardId);
+        builder.HasOne(x => x.TowYard)
+            .WithMany(x => x.StaffUsers)
+            .HasForeignKey(x => x.TowYardId)
+            .OnDelete(DeleteBehavior.SetNull);
     }
 }
 

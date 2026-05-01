@@ -2,6 +2,7 @@ using System.Net;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Text.Json;
+using CarshiTow.Application.Abn;
 using DotNet.Testcontainers.Builders;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.AspNetCore.Hosting;
@@ -28,7 +29,7 @@ public sealed class AuthEndpointsIntegrationTests(AuthEndpointFixture Fixture)
         Skip.IfNot(Fixture.IsDockerAvailable, "Docker is not running — integration tests skipped.");
         var client = Fixture.CreateClient();
 
-        using var res = await client.GetAsync("/api/auth/health");
+        using var res = await client.GetAsync("/api/v1/auth/health");
         Assert.Equal(HttpStatusCode.OK, res.StatusCode);
         var body = await res.Content.ReadAsStringAsync();
         Assert.Contains("Auth API", body, StringComparison.OrdinalIgnoreCase);
@@ -42,13 +43,13 @@ public sealed class AuthEndpointsIntegrationTests(AuthEndpointFixture Fixture)
 
         using var pwdReq =
             JsonContent.Create(new { email = $"missing-{Guid.NewGuid():n}@example.com" }, options: JsonOptions);
-        using var pr = await client.PostAsync("/api/auth/password/reset-request", pwdReq);
+        using var pr = await client.PostAsync("/api/v1/auth/password/reset-request", pwdReq);
         Assert.Equal(HttpStatusCode.NoContent, pr.StatusCode);
 
         using var badReset = JsonContent.Create(
             new { token = "not-a-valid-reset-token-value", newPassword = "AnotherPass123!" },
             options: JsonOptions);
-        using var rs = await client.PostAsync("/api/auth/password/reset", badReset);
+        using var rs = await client.PostAsync("/api/v1/auth/password/reset", badReset);
         Assert.Equal(HttpStatusCode.Unauthorized, rs.StatusCode);
     }
 
@@ -59,12 +60,25 @@ public sealed class AuthEndpointsIntegrationTests(AuthEndpointFixture Fixture)
         var client = Fixture.CreateClient();
 
         var email = $"user-{Guid.NewGuid():n}@example.com";
-
+        var abn = AbnChecksum.CreateRandomChecksumValidAbn(Random.Shared);
         using var registerPayload = JsonContent.Create(
-            new { email, password = "TestPass123!", phoneNumber = "+61400111222" },
+            new
+            {
+                email,
+                password = "TestPass123!",
+                phoneNumber = "+61400111222",
+                businessName = $"Tow Yard Integration {Guid.NewGuid():n}",
+                abn,
+                addressLine1 = "1 Test Rd",
+                suburb = "Melbourne",
+                state = "vic",
+                postcode = "3000",
+                businessPhone = "+61390000001",
+                verificationDocumentUrls = (string[]?)null,
+            },
             options: JsonOptions);
 
-        using var registerRes = await client.PostAsync("/api/auth/register", registerPayload);
+        using var registerRes = await client.PostAsync("/api/v1/auth/register", registerPayload);
         Assert.Equal(HttpStatusCode.OK, registerRes.StatusCode);
 
         using var regJson = JsonDocument.Parse(await registerRes.Content.ReadAsStringAsync());
@@ -73,7 +87,7 @@ public sealed class AuthEndpointsIntegrationTests(AuthEndpointFixture Fixture)
         Assert.NotNull(csrfToken);
         Assert.NotNull(accessToken);
 
-        using var meReq = new HttpRequestMessage(HttpMethod.Get, "/api/auth/me");
+        using var meReq = new HttpRequestMessage(HttpMethod.Get, "/api/v1/auth/me");
         meReq.Headers.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
         using var meRes = await client.SendAsync(meReq);
         Assert.Equal(HttpStatusCode.OK, meRes.StatusCode);
@@ -81,7 +95,7 @@ public sealed class AuthEndpointsIntegrationTests(AuthEndpointFixture Fixture)
         using var otpPayload = JsonContent.Create(
             new { code = "999999", purpose = "NewDeviceVerification" },
             options: JsonOptions);
-        using var otpReq = new HttpRequestMessage(HttpMethod.Post, "/api/auth/otp/verify")
+        using var otpReq = new HttpRequestMessage(HttpMethod.Post, "/api/v1/auth/otp/verify")
         {
             Content = otpPayload,
         };
@@ -91,7 +105,7 @@ public sealed class AuthEndpointsIntegrationTests(AuthEndpointFixture Fixture)
         Assert.Equal(HttpStatusCode.Unauthorized, otpRes.StatusCode);
 
         using var refreshPayload = JsonContent.Create(new { csrfToken }, options: JsonOptions);
-        using var refreshRes = await client.PostAsync("/api/auth/refresh", refreshPayload);
+        using var refreshRes = await client.PostAsync("/api/v1/auth/refresh", refreshPayload);
         Assert.True(
             refreshRes.StatusCode is HttpStatusCode.OK or HttpStatusCode.Unauthorized,
             $"unexpected refresh StatusCode={refreshRes.StatusCode}");
@@ -101,15 +115,18 @@ public sealed class AuthEndpointsIntegrationTests(AuthEndpointFixture Fixture)
 
         using var refJson = JsonDocument.Parse(await refreshRes.Content.ReadAsStringAsync());
         var refreshedCsrf = refJson.RootElement.GetProperty("csrfToken").GetString();
+        var refreshedAccessToken = refJson.RootElement.GetProperty("accessToken").GetString();
         Assert.NotNull(refreshedCsrf);
+        Assert.NotNull(refreshedAccessToken);
 
-        using var logoutReq = new HttpRequestMessage(HttpMethod.Post, "/api/auth/logout");
+        using var logoutReq = new HttpRequestMessage(HttpMethod.Post, "/api/v1/auth/logout");
+        logoutReq.Headers.Authorization = new AuthenticationHeaderValue("Bearer", refreshedAccessToken);
         logoutReq.Headers.TryAddWithoutValidation("X-CSRF-TOKEN", refreshedCsrf);
         using var logoutRes = await client.SendAsync(logoutReq);
         Assert.Equal(HttpStatusCode.NoContent, logoutRes.StatusCode);
 
         using var resetReq = JsonContent.Create(new { email }, options: JsonOptions);
-        using var resetEmailRes = await client.PostAsync("/api/auth/password/reset-request", resetReq);
+        using var resetEmailRes = await client.PostAsync("/api/v1/auth/password/reset-request", resetReq);
         Assert.Equal(HttpStatusCode.NoContent, resetEmailRes.StatusCode);
     }
 }
@@ -146,7 +163,7 @@ public sealed class AuthEndpointFixture : IAsyncLifetime
             });
 
             using var client = CreateClientCore();
-            using var warm = await client.GetAsync("/api/auth/health");
+            using var warm = await client.GetAsync("/api/v1/auth/health");
             warm.EnsureSuccessStatusCode();
             IsDockerAvailable = true;
         }
@@ -174,7 +191,7 @@ public sealed class AuthEndpointFixture : IAsyncLifetime
         return http;
     }
 
-        async Task IAsyncLifetime.DisposeAsync()
+    async Task IAsyncLifetime.DisposeAsync()
     {
         if (_factory is not null)
             await _factory.DisposeAsync();

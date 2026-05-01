@@ -1,4 +1,6 @@
 using System.Globalization;
+using System.IdentityModel.Tokens.Jwt;
+using System.Security.Claims;
 using System.Threading.RateLimiting;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.RateLimiting;
@@ -12,6 +14,9 @@ public static class RateLimitingPolicies
     public const string RefreshPolicy = "auth-refresh-policy";
     public const string PasswordResetRequestPolicy = "auth-password-reset-request-policy";
     public const string DefaultPolicy = "default-policy";
+
+    /// <summary>SRS §8.3 — photo upload (per authenticated user).</summary>
+    public const string PhotoUploadPolicy = "photo-upload-policy";
 
     public static IServiceCollection AddApiRateLimiting(this IServiceCollection services)
     {
@@ -77,6 +82,22 @@ public static class RateLimitingPolicies
                 o.PermitLimit = 100;
                 o.Window = TimeSpan.FromMinutes(1);
                 o.QueueLimit = 0;
+            });
+
+            options.AddPolicy(PhotoUploadPolicy, ctx =>
+            {
+                var sub = ctx.User.FindFirst(JwtRegisteredClaimNames.Sub)?.Value ??
+                          ctx.User.FindFirstValue(ClaimTypes.NameIdentifier) ??
+                          "anonymous";
+                var ip = ctx.Connection.RemoteIpAddress?.ToString() ?? "unknown";
+                var key = $"{sub}:{ip}".ToLowerInvariant();
+                return RateLimitPartition.GetFixedWindowLimiter(key, _ => new FixedWindowRateLimiterOptions
+                {
+                    PermitLimit = 50,
+                    Window = TimeSpan.FromHours(1),
+                    QueueLimit = 0,
+                    AutoReplenishment = true
+                });
             });
 
             options.OnRejected = async (context, _) =>

@@ -7,18 +7,26 @@
 GET {{baseUrl}}/swagger/index.html
 
 ### Register — use a fresh email each run (duplicate email → 409)
-POST {{baseUrl}}/api/auth/register
+POST {{baseUrl}}/api/v1/auth/register
 Content-Type: application/json
 X-Client-Id: postman-test-client
 
 {
   "email": "driver-{{$guid}}@example.com",
   "password": "TestPass123!",
-  "phoneNumber": "+15551234567"
+  "phoneNumber": "+61400111222",
+  "businessName": "Example Tow Pty Ltd",
+  "abn": "51824753556",
+  "addressLine1": "1 Example St",
+  "suburb": "Melbourne",
+  "state": "vic",
+  "postcode": "3000",
+  "businessPhone": "+61390000002",
+  "verificationDocumentUrls": null
 }
 
 ### Login — same password as register above; change email to match
-POST {{baseUrl}}/api/auth/login
+POST {{baseUrl}}/api/v1/auth/login
 Content-Type: application/json
 X-Client-Id: postman-test-client
 
@@ -30,7 +38,7 @@ X-Client-Id: postman-test-client
 
 ### Refresh — send cookies from register/login (Postman: enable cookie jar for this host).
 ### Body.csrfToken must match the csrfToken field from the last auth JSON response.
-POST {{baseUrl}}/api/auth/refresh
+POST {{baseUrl}}/api/v1/auth/refresh
 Content-Type: application/json
 
 {
@@ -38,7 +46,7 @@ Content-Type: application/json
 }
 
 ### Verify OTP — requires Authorization: Bearer <access_token> from partial login/MFA flow
-POST {{baseUrl}}/api/auth/otp/verify
+POST {{baseUrl}}/api/v1/auth/otp/verify
 Authorization: Bearer PASTE_ACCESS_TOKEN
 Content-Type: application/json
 X-Client-Id: postman-test-client
@@ -49,10 +57,10 @@ X-Client-Id: postman-test-client
 }
 
 ### Logout — revokes current refresh token and clears auth cookies
-POST {{baseUrl}}/api/auth/logout
+POST {{baseUrl}}/api/v1/auth/logout
 
 ### Request password reset — check dev logs for link (204; same response if email unknown)
-POST {{baseUrl}}/api/auth/password/reset-request
+POST {{baseUrl}}/api/v1/auth/password/reset-request
 Content-Type: application/json
 
 {
@@ -60,7 +68,7 @@ Content-Type: application/json
 }
 
 ### Complete password reset — token from email link query string
-POST {{baseUrl}}/api/auth/password/reset
+POST {{baseUrl}}/api/v1/auth/password/reset
 Content-Type: application/json
 
 {
@@ -69,12 +77,12 @@ Content-Type: application/json
 }
 
 ### Current user profile — Bearer from login/register/refresh
-GET {{baseUrl}}/api/auth/me
+GET {{baseUrl}}/api/v1/auth/me
 Authorization: Bearer PASTE_ACCESS_TOKEN
 
 ### Assign user role (Crashify Admin; requires platform.users.manage + MFA enabled on caller)
 ### Body.role: TowYardAdmin | TowYardStaff | Insurer | CrashifyAdmin | CrashifySupport
-PATCH {{baseUrl}}/api/admin/users/PASTE_USER_ID/role
+PATCH {{baseUrl}}/api/v1/admin/users/PASTE_USER_ID/role
 Authorization: Bearer PASTE_CRASHIFY_ADMIN_ACCESS_TOKEN
 Content-Type: application/json
 

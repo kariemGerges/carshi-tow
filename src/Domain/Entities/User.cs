@@ -6,6 +6,9 @@ namespace CarshiTow.Domain.Entities;
 public sealed class User
 {
     public Guid Id { get; set; }
+
+    /// <summary>Optional tow yard assignment for staff (owners use <see cref="TowYard.OwnerUserId"/>).</summary>
+    public Guid? TowYardId { get; set; }
     public string Email { get; set; } = string.Empty;
     public string PhoneNumber { get; set; } = string.Empty;
     public HashedPassword Password { get; set; } = new(string.Empty);
@@ -18,6 +21,7 @@ public sealed class User
     public DateTime UpdatedAtUtc { get; set; } = DateTime.UtcNow;
     public DateTime? DeletedAtUtc { get; set; }
 
+    public TowYard? TowYard { get; set; }
     public ICollection<Device> Devices { get; set; } = new List<Device>();
     public ICollection<RefreshToken> RefreshTokens { get; set; } = new List<RefreshToken>();
     public ICollection<TowYard> OwnedTowYards { get; set; } = new List<TowYard>();

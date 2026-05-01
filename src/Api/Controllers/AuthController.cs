@@ -1,6 +1,7 @@
 using CarshiTow.Api.DTOs;
 using CarshiTow.Api.Mappings;
 using CarshiTow.Application.Configuration;
+using CarshiTow.Application.DTOs;
 using CarshiTow.Application.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -20,12 +21,13 @@ namespace CarshiTow.Api.Controllers;
 
 [ApiController]
 
-[Route("api/auth")]
+[Route("api/v1/auth")]
 public sealed class AuthController(
     IAuthService authService,
     IRefreshTokenService refreshTokenService,
     ICookieManager cookieManager,
     IUserRepository userRepository,
+    IJwtAccessTokenValidator jwtAccessTokenValidator,
     IOptions<CookieSettings> cookieSettings) : ControllerBase
 {
     [HttpGet("health")]
@@ -133,7 +135,37 @@ public sealed class AuthController(
         return Ok(response.ToApi());
     }
 
-    // Verify OTP endpoint is used to verify a user's OTP.
+    [HttpPost("mfa/verify")]
+    [AllowAnonymous]
+    [EnableRateLimiting(CarshiTow.Api.Middleware.RateLimitingPolicies.OtpPolicy)]
+    [ProducesResponseType(typeof(AuthResponseDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    public async Task<ActionResult<AuthResponseDto>> VerifyMfa([FromBody] MfaVerifyRequest request, CancellationToken cancellationToken)
+    {
+        if (!jwtAccessTokenValidator.TryGetUserId(request.MfaAccessToken, out var userId))
+        {
+            return Unauthorized();
+        }
+
+        var verify = new VerifyOtpRequest(request.Code, request.Purpose);
+        var fingerprint = HttpContext.Items["DeviceFingerprint"]?.ToString() ?? string.Empty;
+        var userAgent = Request.Headers.UserAgent.ToString();
+        var ipAddress = HttpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown";
+        var response = await authService.VerifyOtpAsync(userId, verify, fingerprint, userAgent, ipAddress, cancellationToken);
+
+        var refresh = await refreshTokenService.CreateAsync(userId, cancellationToken);
+        cookieManager.SetRefreshToken(refresh.RawToken);
+        Response.Cookies.Append(cookieSettings.Value.CsrfCookieName, response.CsrfToken, new CookieOptions
+        {
+            HttpOnly = false,
+            Secure = cookieSettings.Value.Secure,
+            SameSite = SameSiteMode.Strict,
+            Expires = DateTimeOffset.UtcNow.AddDays(cookieSettings.Value.RefreshTokenDays)
+        });
+
+        return Ok(response.ToApi());
+    }
+
     [HttpPost("otp/verify")]
     [Authorize]
     [EnableRateLimiting(CarshiTow.Api.Middleware.RateLimitingPolicies.OtpPolicy)]
@@ -191,9 +223,8 @@ public sealed class AuthController(
         return Ok(refreshResult.Auth.ToApi());
     }
 
-    // Logout endpoint is used to logout a user.
     [HttpPost("logout")]
-    [AllowAnonymous]
+    [Authorize]
     [EnableRateLimiting(CarshiTow.Api.Middleware.RateLimitingPolicies.RefreshPolicy)]
     public async Task<IActionResult> Logout(CancellationToken cancellationToken)
     {

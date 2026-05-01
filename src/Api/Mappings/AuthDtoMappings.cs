@@ -5,7 +5,19 @@ namespace CarshiTow.Api.Mappings;
 
 public static class AuthDtoMappings
 {
-    public static RegisterRequest ToApp(this RegisterRequestDto dto) => new(dto.Email, dto.Password, dto.PhoneNumber);
+    public static RegisterRequest ToApp(this RegisterRequestDto dto) =>
+        new(
+            dto.Email,
+            dto.Password,
+            dto.PhoneNumber,
+            dto.BusinessName,
+            dto.Abn,
+            dto.AddressLine1,
+            dto.Suburb,
+            dto.State,
+            dto.Postcode,
+            dto.BusinessPhone,
+            dto.VerificationDocumentUrls?.ToArray());
     public static LoginRequest ToApp(this LoginRequestDto dto) => new(dto.Email, dto.Password, dto.ClientId);
     public static RefreshTokenRequest ToApp(this RefreshTokenRequestDto dto) => new(dto.CsrfToken);
     public static VerifyOtpRequest ToApp(this VerifyOtpRequestDto dto) => new(dto.Code, dto.Purpose);

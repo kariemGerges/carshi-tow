@@ -13,6 +13,9 @@ public static class CarshiTowAuthorizationPolicies
     /// <summary>Requires MFA enabled for tow-yard and Crashify roles (insurer exempt).</summary>
     public const string MandatoryMfaEnrollment = "MandatoryMfaEnrollment";
 
+    /// <summary>Tow yard staff (assigned) or admin (yard-wide) — read access to pack listings.</summary>
+    public const string TowYardPacksRead = nameof(TowYardPacksRead);
+
     public static void AddPolicies(AuthorizationOptions options)
     {
         foreach (var perm in Permissions.All)
@@ -20,6 +23,14 @@ public static class CarshiTowAuthorizationPolicies
             options.AddPolicy(perm,
                 policy => policy.RequireClaim(PermissionClaimTypes.Permission, perm));
         }
+
+        options.AddPolicy(TowYardPacksRead, policy =>
+        {
+            policy.RequireAuthenticatedUser();
+            policy.RequireAssertion(ctx =>
+                ctx.User.HasClaim(PermissionClaimTypes.Permission, Permissions.PacksViewYard)
+                || ctx.User.HasClaim(PermissionClaimTypes.Permission, Permissions.PacksViewAssigned));
+        });
 
         options.AddPolicy(CrashifyAdminOnly, policy =>
         {

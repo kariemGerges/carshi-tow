@@ -8,9 +8,12 @@ using CarshiTow.Api.Authorization;
 using CarshiTow.Application.Services;
 using CarshiTow.Application.Validators;
 using CarshiTow.Infrastructure.External;
+using CarshiTow.Infrastructure;
 using CarshiTow.Infrastructure.Persistence;
 using CarshiTow.Infrastructure.Repositories;
 using CarshiTow.Infrastructure.Security;
+using CarshiTow.Infrastructure.Services;
+using CarshiTow.Infrastructure.Storage;
 using FluentValidation;
 using System.IdentityModel.Tokens.Jwt;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -25,6 +28,8 @@ public static class ServiceCollectionExtensions
     public static IServiceCollection AddApplicationServices(this IServiceCollection services)
     {
         services.AddScoped<IAuthService, AuthService>();
+        services.AddScoped<IPhotoPackService, PhotoPackService>();
+        services.AddScoped<IPackPhotoManagementService, PackPhotoManagementService>();
         services.AddScoped<IPlatformAdminService, PlatformAdminService>();
         services.AddScoped<IAuthorizationHandler, MandatoryMfaEnrollmentHandler>();
         services.AddScoped<ITokenService, TokenService>();
@@ -58,6 +63,13 @@ public static class ServiceCollectionExtensions
         services.AddDbContext<AppDbContext>(options =>
             options.UseNpgsql(configuration.GetConnectionString("DefaultConnection")));
         services.AddScoped<IUserRepository, UserRepository>();
+        services.AddScoped<IPhotoPackRepository, PhotoPackRepository>();
+        services.AddScoped<ITowYardPartyResolver, TowYardPartyResolver>();
+        services.AddScoped<IAuditLogWriter, AuditLogWriter>();
+        services.AddScoped<IPublicPackLinkService, PublicPackLinkService>();
+        services.AddScoped<ITowYardRepository, TowYardRepository>();
+        services.AddScoped<IAbnRegistryClient, AbnRegistryClient>();
+        services.AddSingleton<IFilePreviewUrlIssuer, DevelopmentFilePreviewUrlIssuer>();
         services.AddScoped<IRefreshTokenRepository, RefreshTokenRepository>();
         services.AddScoped<IPasswordResetTokenRepository, PasswordResetTokenRepository>();
         services.AddSingleton<IEmailSender, DevelopmentEmailSender>();
@@ -72,7 +84,9 @@ public static class ServiceCollectionExtensions
             services.AddScoped<ISmsSender, TwilioSmsSender>();
         }
         services.AddSingleton<IJwtTokenGenerator, JwtTokenGenerator>();
+        services.AddSingleton<IJwtAccessTokenValidator, JwtAccessTokenValidator>();
         services.AddSingleton<ICookieManager, CookieManager>();
+        services.AddCarshiTowObjectStorage();
         return services;
     }
 

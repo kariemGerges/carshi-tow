@@ -1,6 +1,19 @@
+using CarshiTow.Domain.Enums;
+
 namespace CarshiTow.Api.DTOs;
 
-public sealed record RegisterRequestDto(string Email, string Password, string PhoneNumber);
+public sealed record RegisterRequestDto(
+    string Email,
+    string Password,
+    string PhoneNumber,
+    string BusinessName,
+    string Abn,
+    string AddressLine1,
+    string Suburb,
+    AustralianState State,
+    string Postcode,
+    string BusinessPhone,
+    IReadOnlyList<string>? VerificationDocumentUrls = null);
 public sealed record LoginRequestDto(string Email, string Password, string? ClientId);
 public sealed record RefreshTokenRequestDto(string CsrfToken);
 public sealed record VerifyOtpRequestDto(string Code, string Purpose);

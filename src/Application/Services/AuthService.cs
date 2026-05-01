@@ -24,7 +24,9 @@ public sealed class AuthService(
     IBruteForceProtectionService bruteForceProtectionService,
     IPasswordResetTokenRepository passwordResetTokenRepository,
     IEmailSender emailSender,
-    IOptions<PasswordResetSettings> passwordResetSettings) : IAuthService
+    IOptions<PasswordResetSettings> passwordResetSettings,
+    ITowYardRepository towYardRepository,
+    IAbnRegistryClient abnRegistryClient) : IAuthService
 {
     public async Task<AuthResponse> RegisterAsync(RegisterRequest request, CancellationToken cancellationToken)
     {
@@ -36,15 +38,50 @@ public sealed class AuthService(
             throw new InvalidOperationException("User already exists.");
         }
 
+        var canonicalAbn = await abnRegistryClient.RequireValidCanonicalAbnAsync(request.Abn, cancellationToken);
+
+        if (await towYardRepository.ExistsActiveAbnAsync(canonicalAbn, cancellationToken))
+        {
+            throw new InvalidOperationException("This ABN is already registered.");
+        }
+
+        var now = DateTime.UtcNow;
         var user = new User
         {
             Id = Guid.NewGuid(),
             Email = email,
             PhoneNumber = phone,
-            Password = new HashedPassword(passwordHasher.Hash(request.Password))
+            Password = new HashedPassword(passwordHasher.Hash(request.Password)),
+            Role = UserRole.TowYardAdmin,
+            Status = UserStatus.PendingVerification,
+            IsMfaEnabled = true,
+            CreatedAtUtc = now,
+            UpdatedAtUtc = now
+        };
+
+        var bizPhone = inputSanitizer.Sanitize(request.BusinessPhone.Trim());
+        var towYard = new TowYard
+        {
+            Id = Guid.NewGuid(),
+            OwnerUserId = user.Id,
+            BusinessName = inputSanitizer.Sanitize(request.BusinessName.Trim()),
+            Abn = canonicalAbn,
+            AddressLine1 = inputSanitizer.Sanitize(request.AddressLine1.Trim()),
+            Suburb = inputSanitizer.Sanitize(request.Suburb.Trim()),
+            State = request.State,
+            Postcode = request.Postcode.Trim(),
+            Phone = bizPhone,
+            Status = TowYardStatus.Pending,
+            VerificationDocsUrl =
+                request.VerificationDocumentUrls is { Length: > 0 }
+                    ? request.VerificationDocumentUrls.Select(u => inputSanitizer.Sanitize(u.Trim())).ToArray()
+                    : null,
+            CreatedAtUtc = now,
+            UpdatedAtUtc = now
         };
 
         await userRepository.AddAsync(user, cancellationToken);
+        await towYardRepository.AddAsync(towYard, cancellationToken);
         await userRepository.SaveChangesAsync(cancellationToken);
 
         var accessToken = await tokenService.GenerateAccessTokenAsync(user.Id, user.Email, user.Role, cancellationToken);

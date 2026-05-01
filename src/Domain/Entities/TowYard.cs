@@ -31,4 +31,7 @@ public sealed class TowYard
     public ICollection<PhotoPack> PhotoPacks { get; set; } = new List<PhotoPack>();
     public ICollection<Transaction> Transactions { get; set; } = new List<Transaction>();
     public ICollection<Payout> Payouts { get; set; } = new List<Payout>();
+
+    /// <summary>Staff users linked to this yard (SRS §2.2.1 TY-007).</summary>
+    public ICollection<User> StaffUsers { get; set; } = new List<User>();
 }

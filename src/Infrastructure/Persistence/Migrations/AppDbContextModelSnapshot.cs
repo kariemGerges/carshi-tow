@@ -855,6 +855,10 @@ namespace Infrastructure.Persistence.Migrations
                         .HasColumnType("user_status")
                         .HasColumnName("status");
 
+                    b.Property<Guid?>("TowYardId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tow_yard_id");
+
                     b.Property<DateTime>("UpdatedAtUtc")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("updated_at");
@@ -866,6 +870,8 @@ namespace Infrastructure.Persistence.Migrations
 
                     b.HasIndex("PhoneNumber")
                         .IsUnique();
+
+                    b.HasIndex("TowYardId");
 
                     b.ToTable("users", (string)null);
                 });
@@ -1009,6 +1015,11 @@ namespace Infrastructure.Persistence.Migrations
 
             modelBuilder.Entity("CarshiTow.Domain.Entities.User", b =>
                 {
+                    b.HasOne("CarshiTow.Domain.Entities.TowYard", "TowYard")
+                        .WithMany("StaffUsers")
+                        .HasForeignKey("TowYardId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
                     b.OwnsOne("CarshiTow.Domain.ValueObjects.HashedPassword", "Password", b1 =>
                         {
                             b1.Property<Guid>("UserId")
@@ -1030,6 +1041,8 @@ namespace Infrastructure.Persistence.Migrations
 
                     b.Navigation("Password")
                         .IsRequired();
+
+                    b.Navigation("TowYard");
                 });
 
             modelBuilder.Entity("CarshiTow.Domain.Entities.PhotoPack", b =>
@@ -1044,6 +1057,8 @@ namespace Infrastructure.Persistence.Migrations
                     b.Navigation("Payouts");
 
                     b.Navigation("PhotoPacks");
+
+                    b.Navigation("StaffUsers");
 
                     b.Navigation("Transactions");
                 });

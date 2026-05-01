@@ -21,5 +21,6 @@
     <PackageReference Include="Microsoft.IdentityModel.Tokens" Version="8.0.4" />
     <PackageReference Include="System.IdentityModel.Tokens.Jwt" Version="8.0.2" />
     <PackageReference Include="Twilio" Version="7.8.2" />
+    <PackageReference Include="AWSSDK.S3" Version="3.7.411" />
   </ItemGroup>
 </Project>
