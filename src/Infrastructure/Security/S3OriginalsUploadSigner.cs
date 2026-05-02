@@ -31,10 +31,34 @@ public sealed class S3OriginalsUploadSigner(IOptions<ObjectStorageSettings> opti
         return new SignedPutObjectResult(url);
     }
 
+    public string CreateSignedGet(string objectKey, TimeSpan ttl)
+    {
+        var o = options.Value;
+        ArgumentException.ThrowIfNullOrWhiteSpace(objectKey);
+        var request = new GetPreSignedUrlRequest
+        {
+            BucketName = o.BucketName,
+            Key = objectKey,
+            Verb = HttpVerb.GET,
+            Expires = DateTime.UtcNow.Add(ttl),
+            Protocol = o.ServiceUrl is Uri u && string.Equals(u.Scheme, "http", StringComparison.OrdinalIgnoreCase)
+                ? Protocol.HTTP
+                : Protocol.HTTPS
+        };
+
+        return client.GetPreSignedURL(request);
+    }
+
     public string BuildOriginalKey(Guid packId, Guid photoId, string safeFileExtensionIncludingDotLower)
     {
         var prefix = options.Value.OriginalsPrefix.Trim().Trim('/').ToLowerInvariant();
         return $"{prefix}/{packId:D}/{photoId:D}{safeFileExtensionIncludingDotLower}";
+    }
+
+    public string BuildPreviewKey(Guid packId, Guid photoId)
+    {
+        var prefix = options.Value.PreviewsPrefix.Trim().Trim('/').ToLowerInvariant();
+        return $"{prefix}/{packId:D}/{photoId:D}.jpg";
     }
 }
 

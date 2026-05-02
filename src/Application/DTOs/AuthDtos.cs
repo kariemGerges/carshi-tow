@@ -14,7 +14,7 @@ public sealed record RegisterRequest(
     AustralianState State,
     string Postcode,
     string BusinessPhone,
-    string[]? VerificationDocumentUrls = null);
+    string[] VerificationDocumentUrls);
 public sealed record LoginRequest(string Email, string Password, string? ClientId);
 public sealed record RefreshTokenRequest(string CsrfToken);
 public sealed record VerifyOtpRequest(string Code, string Purpose);

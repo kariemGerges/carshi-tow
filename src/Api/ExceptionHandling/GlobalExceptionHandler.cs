@@ -1,4 +1,5 @@
 using CarshiTow.Api.Middleware;
+using CarshiTow.Api.Srs;
 using FluentValidation;
 using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.AspNetCore.Http;
@@ -22,6 +23,13 @@ public sealed class GlobalExceptionHandler(
             : httpContext.TraceIdentifier;
 
         var (status, title, detail, code) = MapException(exception, environment.IsDevelopment());
+        IReadOnlyDictionary<string, string[]>? validationFields = null;
+        if (exception is ValidationException vex)
+        {
+            validationFields = vex.Errors
+                .GroupBy(e => e.PropertyName)
+                .ToDictionary(g => g.Key, g => g.Select(x => x.ErrorMessage).ToArray(), StringComparer.Ordinal);
+        }
 
         if (status >= StatusCodes.Status500InternalServerError)
         {
@@ -45,6 +53,15 @@ public sealed class GlobalExceptionHandler(
         }
 
         httpContext.Response.StatusCode = status;
+
+        if (SrsApiEnvelopePaths.ShouldApply(httpContext.Request.Path))
+        {
+            var error = new SrsEnvelopeError(code, detail, correlationId, validationFields);
+            var envelope = new SrsEnvelope(false, null, error);
+            httpContext.Response.ContentType = "application/json; charset=utf-8";
+            await httpContext.Response.WriteAsJsonAsync(envelope, cancellationToken);
+            return true;
+        }
 
         var problem = new ProblemDetailsContext
         {

@@ -22,7 +22,7 @@ X-Client-Id: postman-test-client
   "state": "vic",
   "postcode": "3000",
   "businessPhone": "+61390000002",
-  "verificationDocumentUrls": null
+  "verificationDocumentUrls": [ "https://example.com/verification-doc.pdf" ]
 }
 
 ### Login — same password as register above; change email to match

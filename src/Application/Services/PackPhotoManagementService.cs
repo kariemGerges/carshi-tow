@@ -13,7 +13,8 @@ public sealed class PackPhotoManagementService(
     ITowYardPartyResolver yardResolver,
     IOriginalsUploadSigner signer,
     IAuditLogWriter audit,
-    IOptions<ObjectStorageSettings> storageOptions) : IPackPhotoManagementService
+    IOptions<ObjectStorageSettings> storageOptions,
+    IPreviewJobQueue previewJobQueue) : IPackPhotoManagementService
 {
     private readonly ObjectStorageSettings _storage = storageOptions.Value;
 
@@ -24,6 +25,7 @@ public sealed class PackPhotoManagementService(
         CancellationToken cancellationToken)
     {
         var ctx = await yardResolver.ResolveAsync(actorUserId, cancellationToken);
+        TowYardContentGuard.EnsureYardActiveForContentWrites(ctx);
 
         var pack = await packs.GetTrackedPackAsync(packId, cancellationToken) ??
                    throw new KeyNotFoundException("Photo pack not found.");
@@ -101,6 +103,7 @@ public sealed class PackPhotoManagementService(
         CancellationToken cancellationToken)
     {
         var ctx = await yardResolver.ResolveAsync(actorUserId, cancellationToken);
+        TowYardContentGuard.EnsureYardActiveForContentWrites(ctx);
         var pack = await packs.GetTrackedPackAsync(packId, cancellationToken) ??
                    throw new KeyNotFoundException("Photo pack not found.");
 
@@ -145,6 +148,10 @@ public sealed class PackPhotoManagementService(
             photo.PreviewS3Key = photo.OriginalS3Key;
             photo.ThumbnailS3Key = photo.OriginalS3Key;
         }
+        else
+        {
+            previewJobQueue.TryEnqueue(photo.Id);
+        }
 
         await audit.WriteAsync(
             actorUserId,
@@ -185,6 +192,7 @@ public sealed class PackPhotoManagementService(
         CancellationToken cancellationToken)
     {
         var ctx = await yardResolver.ResolveAsync(actorUserId, cancellationToken);
+        TowYardContentGuard.EnsureYardActiveForContentWrites(ctx);
         var pack = await packs.GetTrackedPackAsync(packId, cancellationToken) ??
                    throw new KeyNotFoundException("Photo pack not found.");
 
@@ -222,6 +230,7 @@ public sealed class PackPhotoManagementService(
         CancellationToken cancellationToken)
     {
         var ctx = await yardResolver.ResolveAsync(actorUserId, cancellationToken);
+        TowYardContentGuard.EnsureYardActiveForContentWrites(ctx);
         var pack = await packs.GetTrackedPackAsync(packId, cancellationToken) ??
                    throw new KeyNotFoundException("Photo pack not found.");
 

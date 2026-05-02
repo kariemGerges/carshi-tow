@@ -30,7 +30,10 @@ public enum TowYardStatus
 {
     Pending = 1,
     Active = 2,
-    Suspended = 3
+    Suspended = 3,
+
+    /// <summary>Registration rejected by Crashify Admin (AD-002); reason stored on the tow yard record.</summary>
+    Rejected = 4
 }
 
 public enum PhotoPackStatus

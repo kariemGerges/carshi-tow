@@ -34,6 +34,7 @@ public sealed class PhotoPackService : IPhotoPackService
         CancellationToken cancellationToken)
     {
         var ctx = await _yardResolver.ResolveAsync(actorUserId, cancellationToken);
+        TowYardContentGuard.EnsureYardActiveForContentWrites(ctx);
 
         var now = DateTime.UtcNow;
         var platformFee = ctx.PlatformFeeCents;
@@ -82,6 +83,7 @@ public sealed class PhotoPackService : IPhotoPackService
         CancellationToken cancellationToken)
     {
         var ctx = await _yardResolver.ResolveAsync(actorUserId, cancellationToken);
+        TowYardContentGuard.EnsureYardActiveForContentWrites(ctx);
         var pack = await _packs.GetTrackedPackAsync(packId, cancellationToken) ??
                    throw new KeyNotFoundException("Photo pack not found.");
 
@@ -161,6 +163,7 @@ public sealed class PhotoPackService : IPhotoPackService
     public async Task DeleteDraftAsync(Guid actorUserId, Guid packId, CancellationToken cancellationToken)
     {
         var ctx = await _yardResolver.ResolveAsync(actorUserId, cancellationToken);
+        TowYardContentGuard.EnsureYardActiveForContentWrites(ctx);
         var pack = await _packs.GetTrackedPackAsync(packId, cancellationToken) ??
                    throw new KeyNotFoundException("Photo pack not found.");
 

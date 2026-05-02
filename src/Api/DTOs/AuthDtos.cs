@@ -13,7 +13,7 @@ public sealed record RegisterRequestDto(
     AustralianState State,
     string Postcode,
     string BusinessPhone,
-    IReadOnlyList<string>? VerificationDocumentUrls = null);
+    IReadOnlyList<string> VerificationDocumentUrls);
 public sealed record LoginRequestDto(string Email, string Password, string? ClientId);
 public sealed record RefreshTokenRequestDto(string CsrfToken);
 public sealed record VerifyOtpRequestDto(string Code, string Purpose);

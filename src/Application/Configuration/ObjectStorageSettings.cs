@@ -8,6 +8,9 @@ public sealed class ObjectStorageSettings
     /// <summary>Original (full-resolution) originals prefix inside bucket.</summary>
     public string OriginalsPrefix { get; set; } = "originals";
 
+    /// <summary>Server-generated watermarked previews (SRS §8.2 separate logical bucket in AWS; same bucket allowed for MVP).</summary>
+    public string PreviewsPrefix { get; set; } = "previews";
+
     public string BucketName { get; set; } = "carshitow-originals-local";
 
     public string Region { get; set; } = "ap-southeast-2";

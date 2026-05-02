@@ -72,10 +72,7 @@ public sealed class AuthService(
             Postcode = request.Postcode.Trim(),
             Phone = bizPhone,
             Status = TowYardStatus.Pending,
-            VerificationDocsUrl =
-                request.VerificationDocumentUrls is { Length: > 0 }
-                    ? request.VerificationDocumentUrls.Select(u => inputSanitizer.Sanitize(u.Trim())).ToArray()
-                    : null,
+            VerificationDocsUrl = request.VerificationDocumentUrls.Select(u => inputSanitizer.Sanitize(u.Trim())).ToArray(),
             CreatedAtUtc = now,
             UpdatedAtUtc = now
         };

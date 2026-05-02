@@ -30,6 +30,7 @@ public sealed class AuthController(
     IJwtAccessTokenValidator jwtAccessTokenValidator,
     IOptions<CookieSettings> cookieSettings) : ControllerBase
 {
+    // Health endpoint is used to check if the auth API is running.
     [HttpGet("health")]
     [AllowAnonymous]
     [EnableRateLimiting(CarshiTow.Api.Middleware.RateLimitingPolicies.AuthPolicy)]
@@ -41,6 +42,7 @@ public sealed class AuthController(
     [ProducesResponseType(StatusCodes.Status500InternalServerError)]
     public IActionResult Health() => Ok("CarshiTow Auth API is running");
 
+    // Request password reset endpoint is used to request a password reset.
     [HttpPost("password/reset-request")]
     [AllowAnonymous]
     [EnableRateLimiting(CarshiTow.Api.Middleware.RateLimitingPolicies.PasswordResetRequestPolicy)]
@@ -51,6 +53,7 @@ public sealed class AuthController(
         return NoContent();
     }
 
+    // Complete password reset endpoint is used to complete a password reset.
     [HttpPost("password/reset")]
     [AllowAnonymous]
     [EnableRateLimiting(CarshiTow.Api.Middleware.RateLimitingPolicies.AuthPolicy)]
@@ -62,6 +65,7 @@ public sealed class AuthController(
         return NoContent();
     }
 
+    // Get current profile endpoint is used to get the current user's profile.
     [HttpGet("me")]
     [Authorize]
     [EnableRateLimiting(CarshiTow.Api.Middleware.RateLimitingPolicies.AuthPolicy)]
@@ -81,7 +85,7 @@ public sealed class AuthController(
     }
 
     // Register endpoint is used to register a new user.
-    [HttpPost("register")]
+    [HttpPost("register")] // POST /api/v1/auth/register
     [AllowAnonymous]
     [EnableRateLimiting(CarshiTow.Api.Middleware.RateLimitingPolicies.AuthPolicy)]
     public async Task<ActionResult<AuthResponseDto>> Register([FromBody] RegisterRequestDto request, CancellationToken cancellationToken)
@@ -105,7 +109,7 @@ public sealed class AuthController(
     }
 
     // Login endpoint is used to login a user.
-    [HttpPost("login")]
+    [HttpPost("login")] // POST /api/v1/auth/login
     [AllowAnonymous]
     [EnableRateLimiting(CarshiTow.Api.Middleware.RateLimitingPolicies.LoginPolicy)]
     public async Task<ActionResult<LoginResponseDto>> Login([FromBody] LoginRequestDto request, CancellationToken cancellationToken)
@@ -135,7 +139,7 @@ public sealed class AuthController(
         return Ok(response.ToApi());
     }
 
-    [HttpPost("mfa/verify")]
+    [HttpPost("mfa/verify")] // POST /api/v1/auth/mfa/verify
     [AllowAnonymous]
     [EnableRateLimiting(CarshiTow.Api.Middleware.RateLimitingPolicies.OtpPolicy)]
     [ProducesResponseType(typeof(AuthResponseDto), StatusCodes.Status200OK)]
@@ -166,7 +170,7 @@ public sealed class AuthController(
         return Ok(response.ToApi());
     }
 
-    [HttpPost("otp/verify")]
+    [HttpPost("otp/verify")] // POST /api/v1/auth/otp/verify
     [Authorize]
     [EnableRateLimiting(CarshiTow.Api.Middleware.RateLimitingPolicies.OtpPolicy)]
     public async Task<IActionResult> VerifyOtp([FromBody] VerifyOtpRequestDto request, CancellationToken cancellationToken)
@@ -196,7 +200,7 @@ public sealed class AuthController(
     }
 
     // Refresh endpoint is used to refresh a user's token.
-    [HttpPost("refresh")]
+    [HttpPost("refresh")] // POST /api/v1/auth/refresh
     [AllowAnonymous]
     [EnableRateLimiting(CarshiTow.Api.Middleware.RateLimitingPolicies.RefreshPolicy)]
     public async Task<ActionResult<AuthResponseDto>> Refresh([FromBody] RefreshTokenRequestDto request, CancellationToken cancellationToken)
@@ -223,7 +227,7 @@ public sealed class AuthController(
         return Ok(refreshResult.Auth.ToApi());
     }
 
-    [HttpPost("logout")]
+    [HttpPost("logout")] // POST /api/v1/auth/logout    
     [Authorize]
     [EnableRateLimiting(CarshiTow.Api.Middleware.RateLimitingPolicies.RefreshPolicy)]
     public async Task<IActionResult> Logout(CancellationToken cancellationToken)

@@ -134,6 +134,7 @@ public sealed class TowYardConfiguration : IEntityTypeConfiguration<TowYard>
         builder.Property(x => x.VerificationDocsUrl).HasColumnName("verification_docs_url");
         builder.Property(x => x.VerifiedAtUtc).HasColumnName("verified_at");
         builder.Property(x => x.VerifiedByUserId).HasColumnName("verified_by_user_id");
+        builder.Property(x => x.LastStatusChangeReason).HasColumnName("last_status_change_reason").HasMaxLength(2000);
         builder.Property(x => x.BankBsb).HasColumnName("bank_bsb").HasMaxLength(6);
         builder.Property(x => x.BankAccountNumber).HasColumnName("bank_account_number").HasMaxLength(20);
         builder.Property(x => x.StripeConnectId).HasColumnName("stripe_connect_id").HasMaxLength(255);

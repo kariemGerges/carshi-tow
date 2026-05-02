@@ -12,6 +12,7 @@ using CarshiTow.Infrastructure;
 using CarshiTow.Infrastructure.Persistence;
 using CarshiTow.Infrastructure.Repositories;
 using CarshiTow.Infrastructure.Security;
+using CarshiTow.Infrastructure.Media;
 using CarshiTow.Infrastructure.Services;
 using CarshiTow.Infrastructure.Storage;
 using FluentValidation;
@@ -31,6 +32,8 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IPhotoPackService, PhotoPackService>();
         services.AddScoped<IPackPhotoManagementService, PackPhotoManagementService>();
         services.AddScoped<IPlatformAdminService, PlatformAdminService>();
+        services.AddScoped<IAdminTowYardService, AdminTowYardService>();
+        services.AddScoped<ITowYardDashboardService, TowYardDashboardService>();
         services.AddScoped<IAuthorizationHandler, MandatoryMfaEnrollmentHandler>();
         services.AddScoped<ITokenService, TokenService>();
         services.AddScoped<IRefreshTokenService, RefreshTokenService>();
@@ -68,7 +71,17 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IAuditLogWriter, AuditLogWriter>();
         services.AddScoped<IPublicPackLinkService, PublicPackLinkService>();
         services.AddScoped<ITowYardRepository, TowYardRepository>();
+        services.AddHttpClient("abr", client =>
+        {
+            client.BaseAddress = new Uri("https://abr.business.gov.au/");
+            client.Timeout = TimeSpan.FromSeconds(25);
+        });
         services.AddScoped<IAbnRegistryClient, AbnRegistryClient>();
+        services.AddScoped<ILinkPaymentService, LinkPaymentService>();
+        services.AddScoped<IPaymentNotificationService, PaymentNotificationService>();
+        services.AddSingleton<PreviewJobChannel>();
+        services.AddSingleton<IPreviewJobQueue, PreviewJobQueueWriter>();
+        services.AddHostedService<PreviewWatermarkHostedService>();
         services.AddSingleton<IFilePreviewUrlIssuer, DevelopmentFilePreviewUrlIssuer>();
         services.AddScoped<IRefreshTokenRepository, RefreshTokenRepository>();
         services.AddScoped<IPasswordResetTokenRepository, PasswordResetTokenRepository>();
@@ -87,6 +100,7 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<IJwtAccessTokenValidator, JwtAccessTokenValidator>();
         services.AddSingleton<ICookieManager, CookieManager>();
         services.AddCarshiTowObjectStorage();
+        services.Configure<StripeSettings>(configuration.GetSection(StripeSettings.SectionName));
         return services;
     }
 

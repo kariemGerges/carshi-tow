@@ -17,7 +17,7 @@ public static class AuthDtoMappings
             dto.State,
             dto.Postcode,
             dto.BusinessPhone,
-            dto.VerificationDocumentUrls?.ToArray());
+            dto.VerificationDocumentUrls.ToArray());
     public static LoginRequest ToApp(this LoginRequestDto dto) => new(dto.Email, dto.Password, dto.ClientId);
     public static RefreshTokenRequest ToApp(this RefreshTokenRequestDto dto) => new(dto.CsrfToken);
     public static VerifyOtpRequest ToApp(this VerifyOtpRequestDto dto) => new(dto.Code, dto.Purpose);

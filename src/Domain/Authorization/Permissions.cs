@@ -30,6 +30,9 @@ public static class Permissions
     public const string RefundsProcess = "refunds.process";
     public const string PlatformAuditRead = "platform.audit.read";
 
+    /// <summary>Approve / reject / suspend tow yards (SRS AD-001–003).</summary>
+    public const string PlatformTowYardsManage = "platform.tow_yards.manage";
+
     /// <summary>Every permission string; used to register authorization policies and for Crashify Admin tokens.</summary>
     public static readonly IReadOnlyList<string> All =
     [
@@ -48,6 +51,7 @@ public static class Permissions
         PlatformTransactionsView,
         PlatformTransactionsManage,
         RefundsProcess,
-        PlatformAuditRead
+        PlatformAuditRead,
+        PlatformTowYardsManage
     ];
 }

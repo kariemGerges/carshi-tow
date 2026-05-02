@@ -17,6 +17,9 @@ public sealed class TowYard
     public string[]? VerificationDocsUrl { get; set; }
     public DateTime? VerifiedAtUtc { get; set; }
     public Guid? VerifiedByUserId { get; set; }
+
+    /// <summary>Mandatory for reject/suspend admin actions (SRS AD-002 / AD-003).</summary>
+    public string? LastStatusChangeReason { get; set; }
     public string? BankBsb { get; set; }
     public string? BankAccountNumber { get; set; }
     public string? StripeConnectId { get; set; }

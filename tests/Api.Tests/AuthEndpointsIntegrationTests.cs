@@ -31,12 +31,15 @@ public sealed class AuthEndpointsIntegrationTests(AuthEndpointFixture Fixture)
 
         using var res = await client.GetAsync("/api/v1/auth/health");
         Assert.Equal(HttpStatusCode.OK, res.StatusCode);
-        var body = await res.Content.ReadAsStringAsync();
-        Assert.Contains("Auth API", body, StringComparison.OrdinalIgnoreCase);
+        using var doc = JsonDocument.Parse(await res.Content.ReadAsStringAsync());
+        Assert.True(doc.RootElement.GetProperty("success").GetBoolean());
+        var data = doc.RootElement.GetProperty("data").GetString();
+        Assert.NotNull(data);
+        Assert.Contains("Auth API", data, StringComparison.OrdinalIgnoreCase);
     }
 
     [SkippableFact]
-    public async Task Password_reset_unknown_email_returns_204_and_bad_token_returns_401()
+    public async Task Password_reset_unknown_email_returns_envelope_ok_and_bad_token_returns_401()
     {
         Skip.IfNot(Fixture.IsDockerAvailable, "Docker is not running — integration tests skipped.");
         var client = Fixture.CreateClient();
@@ -44,7 +47,11 @@ public sealed class AuthEndpointsIntegrationTests(AuthEndpointFixture Fixture)
         using var pwdReq =
             JsonContent.Create(new { email = $"missing-{Guid.NewGuid():n}@example.com" }, options: JsonOptions);
         using var pr = await client.PostAsync("/api/v1/auth/password/reset-request", pwdReq);
-        Assert.Equal(HttpStatusCode.NoContent, pr.StatusCode);
+        Assert.Equal(HttpStatusCode.OK, pr.StatusCode);
+        using (var pwdDoc = JsonDocument.Parse(await pr.Content.ReadAsStringAsync()))
+        {
+            Assert.True(pwdDoc.RootElement.GetProperty("success").GetBoolean());
+        }
 
         using var badReset = JsonContent.Create(
             new { token = "not-a-valid-reset-token-value", newPassword = "AnotherPass123!" },
@@ -74,7 +81,7 @@ public sealed class AuthEndpointsIntegrationTests(AuthEndpointFixture Fixture)
                 state = "vic",
                 postcode = "3000",
                 businessPhone = "+61390000001",
-                verificationDocumentUrls = (string[]?)null,
+                verificationDocumentUrls = new[] { "https://example.com/verification-doc.pdf" },
             },
             options: JsonOptions);
 
@@ -82,8 +89,9 @@ public sealed class AuthEndpointsIntegrationTests(AuthEndpointFixture Fixture)
         Assert.Equal(HttpStatusCode.OK, registerRes.StatusCode);
 
         using var regJson = JsonDocument.Parse(await registerRes.Content.ReadAsStringAsync());
-        var csrfToken = regJson.RootElement.GetProperty("csrfToken").GetString();
-        var accessToken = regJson.RootElement.GetProperty("accessToken").GetString();
+        var regData = regJson.RootElement.GetProperty("data");
+        var csrfToken = regData.GetProperty("csrfToken").GetString();
+        var accessToken = regData.GetProperty("accessToken").GetString();
         Assert.NotNull(csrfToken);
         Assert.NotNull(accessToken);
 
@@ -114,8 +122,9 @@ public sealed class AuthEndpointsIntegrationTests(AuthEndpointFixture Fixture)
             return;
 
         using var refJson = JsonDocument.Parse(await refreshRes.Content.ReadAsStringAsync());
-        var refreshedCsrf = refJson.RootElement.GetProperty("csrfToken").GetString();
-        var refreshedAccessToken = refJson.RootElement.GetProperty("accessToken").GetString();
+        var refData = refJson.RootElement.GetProperty("data");
+        var refreshedCsrf = refData.GetProperty("csrfToken").GetString();
+        var refreshedAccessToken = refData.GetProperty("accessToken").GetString();
         Assert.NotNull(refreshedCsrf);
         Assert.NotNull(refreshedAccessToken);
 
@@ -123,11 +132,11 @@ public sealed class AuthEndpointsIntegrationTests(AuthEndpointFixture Fixture)
         logoutReq.Headers.Authorization = new AuthenticationHeaderValue("Bearer", refreshedAccessToken);
         logoutReq.Headers.TryAddWithoutValidation("X-CSRF-TOKEN", refreshedCsrf);
         using var logoutRes = await client.SendAsync(logoutReq);
-        Assert.Equal(HttpStatusCode.NoContent, logoutRes.StatusCode);
+        Assert.Equal(HttpStatusCode.OK, logoutRes.StatusCode);
 
         using var resetReq = JsonContent.Create(new { email }, options: JsonOptions);
         using var resetEmailRes = await client.PostAsync("/api/v1/auth/password/reset-request", resetReq);
-        Assert.Equal(HttpStatusCode.NoContent, resetEmailRes.StatusCode);
+        Assert.Equal(HttpStatusCode.OK, resetEmailRes.StatusCode);
     }
 }
 

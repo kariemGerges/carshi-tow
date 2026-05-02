@@ -29,6 +29,7 @@ builder.Services.AddControllers(options =>
 {
     options.Filters.Add<ValidationFilter>();
     options.Filters.Add<DeviceFingerprintFilter>();
+    options.Filters.Add<SrsApiEnvelopeFilter>();
 }).AddJsonOptions(o =>
 {
     o.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter(JsonNamingPolicy.CamelCase));

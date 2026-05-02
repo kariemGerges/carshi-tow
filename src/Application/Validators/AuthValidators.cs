@@ -25,12 +25,13 @@ public sealed class RegisterRequestValidator : AbstractValidator<RegisterRequest
         RuleFor(x => x.Postcode).NotEmpty().Length(4).Matches(@"^\d{4}$");
         RuleFor(x => x.BusinessPhone).NotEmpty().Matches(@"^\+?[1-9]\d{8,14}$");
         RuleFor(x => x.VerificationDocumentUrls)
-            .Must(urls => urls is null or { Length: <= 10 })
-            .WithMessage("At most ten verification document URLs may be supplied.")
-            .Must(urls => urls == null || urls.All(u =>
+            .NotNull()
+            .Must(urls => urls!.Length is >= 1 and <= 10)
+            .WithMessage("Between one and ten verification document URLs are required (SRS §TY-004).")
+            .Must(urls => urls.All(u =>
                 Uri.TryCreate(u, UriKind.Absolute, out var uri) &&
                 (uri.Scheme == Uri.UriSchemeHttps || uri.Scheme == Uri.UriSchemeHttp)))
-            .When(x => x.VerificationDocumentUrls is { Length: > 0 });
+            .WithMessage("Each verification document URL must be an absolute http or https URL.");
     }
 }
 

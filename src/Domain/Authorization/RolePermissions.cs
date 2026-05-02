@@ -32,7 +32,8 @@ public static class RolePermissions
         Permissions.UploadsCreate,
         Permissions.PacksCreate,
         Permissions.PacksViewAssigned,
-        Permissions.PacksSetPrice
+        Permissions.PacksSetPrice,
+        Permissions.DashboardView
     ];
 
     private static readonly HashSet<string> Insurer =
